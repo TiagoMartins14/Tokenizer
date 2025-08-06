@@ -48,25 +48,52 @@ contract Shiny42Token is ERC20, Ownable {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     mapping(address user => uint256 balance) s_userBalance;
+    mapping(address token => uint256 totalSupply) s_totalTokenSupply;
+    uint256 s_totalShiny42TokenSupply;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
     /*//////////////////////////////////////////////////////////////
+                               MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+    modifier moreThanZero(uint256 _amount) {
+        if (_amount <= 0) {
+            revert Shiny42Token__NeedsToBeMoreThanZero();
+        }
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
-
+    error Shiny42Token__NeedsToBeMoreThanZero();
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     constructor() ERC20("Shiny42Token", "S42T") Ownable(msg.sender) {}
 
-    function mint(address _account, uint256 _value) external onlyOwner {
+    /**
+     * @notice Mints Shiny42Tokens to the user
+     */
+    function mint(address _account, uint256 _value) private onlyOwner {
         _mint(_account, _value);
     }
 
-    function burn(address _account, uint256 _value) external onlyOwner {
+    /**
+     * @notice Burns Shiny42Tokens from the user
+     */
+    function burn(address _account, uint256 _value) private onlyOwner {
         _burn(_account, _value);
+    }
+
+    /**
+     * @notice Swaps other tokens for Shiny42Tokens. A user can only swap for officially recognized tokens.
+     */
+    function getShiny42Tokens(address _user, uint256 _amount, address _token) public moreThanZero(_amount) onlyOwner() {
+        s_userBalance += _amount;
+        s_totalTokenSupply[_token]
+        mint(_user, _amount);
     }
 }
