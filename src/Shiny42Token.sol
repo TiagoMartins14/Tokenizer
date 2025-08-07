@@ -54,7 +54,7 @@ contract Shiny42Token is ERC20, Ownable {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
-
+    
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -78,20 +78,9 @@ contract Shiny42Token is ERC20, Ownable {
         s_totalSepoliaSupply = 0;
     }
 
-    /**
-     * @notice Mints Shiny42Tokens to the user
-     */
-    function mint(address _account, uint256 _value) internal {
-        _mint(_account, _value);
-    }
-
-    /**
-     * @notice Burns Shiny42Tokens from the user
-     */
-    function burn(address _account, uint256 _value) internal {
-        _burn(_account, _value);
-    }
-
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
     /**
      * @notice Swaps other tokens for Shiny42Tokens. A user can only swap for officially recognized tokens.
      */
@@ -112,6 +101,26 @@ contract Shiny42Token is ERC20, Ownable {
         burn(_user, _amount);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                           INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    /**
+     * @notice Mints Shiny42Tokens to the user
+     */
+    function mint(address _account, uint256 _value) internal {
+        _mint(_account, _value);
+    }
+
+    /**
+     * @notice Burns Shiny42Tokens from the user
+     */
+    function burn(address _account, uint256 _value) internal {
+        _burn(_account, _value);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
     /**
      * @notice Returns the balance of a user
      * @param _user The address of the user
