@@ -37,19 +37,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract Shiny42Token is ERC20, Ownable, Pausable {
-    // 1. Mapping of user's addres to his balance
-    // 2. Total supply
-    // 3. Mint
-    // 4. Burn
-    // 5. Transfer
-    // 6. Transfer from
-
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    uint256 public constant FAUCET_AMOUNT = 100 * 1e18;
+    uint256 public constant FAUCET_DRIP_AMOUNT = 100 * 1e18;
     uint256 public constant FAUCET_COOLDOWN = 5 minutes;
-
     mapping(address => uint256) public s_lastMintedAt;
 
     /*//////////////////////////////////////////////////////////////
@@ -73,6 +65,7 @@ contract Shiny42Token is ERC20, Ownable, Pausable {
     //////////////////////////////////////////////////////////////*/
     error Shiny42Token__NeedsToBeMoreThanZero();
     error Shiny42Token__FaucetCooldownNotFinished();
+    error Shiny42Token__NotEnoughBalance();
 
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
@@ -83,15 +76,15 @@ contract Shiny42Token is ERC20, Ownable, Pausable {
                            EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     /**
-     * @notice Developers can mint a small amount for testing
+     * @notice Developers can mint a small amount for testing. Has a cooldown of FAUCET_COOLDOWN enforced to each user.
      */
     function faucet() external whenNotPaused {
-        if (s_lastMintedAt[msg.sender] - block.timestamp <= FAUCET_COOLDOWN) {
+        if (s_lastMintedAt[msg.sender] != 0 && block.timestamp < s_lastMintedAt[msg.sender] + FAUCET_COOLDOWN) {
             revert Shiny42Token__FaucetCooldownNotFinished();
         }
         s_lastMintedAt[msg.sender] = block.timestamp;
-        _mint(msg.sender, FAUCET_AMOUNT);
-        emit FaucetUsed(msg.sender, FAUCET_AMOUNT);
+        _mint(msg.sender, FAUCET_DRIP_AMOUNT);
+        emit FaucetUsed(msg.sender, FAUCET_DRIP_AMOUNT);
     }
 
     /**
@@ -99,6 +92,9 @@ contract Shiny42Token is ERC20, Ownable, Pausable {
      * @param amount The amount of tokens to burn
      */
     function burn(uint256 amount) external moreThanZero(amount) {
+        if (balanceOf(msg.sender) < amount) {
+            revert Shiny42Token__NotEnoughBalance();
+        }
         _burn(msg.sender, amount);
         emit Burned(msg.sender, amount);
     }
