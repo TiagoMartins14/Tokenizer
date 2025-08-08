@@ -34,9 +34,9 @@ pragma solidity ^0.8.30;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract Shiny42Token is ERC20, Ownable {
-
+contract Shiny42Token is ERC20, Ownable, Pausable {
     // 1. Mapping of user's addres to his balance
     // 2. Total supply
     // 3. Mint
@@ -47,14 +47,17 @@ contract Shiny42Token is ERC20, Ownable {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    mapping(address user => uint256 balance) s_userBalance;
-    uint256 s_totalShiny42TokenSupply;
-    uint256 s_totalSepoliaSupply;
+    uint256 public constant FAUCET_AMOUNT = 100 * 1e18;
+    uint256 public constant FAUCET_COOLDOWN = 5 minutes;
+
+    mapping(address => uint256) public s_lastMintedAt;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
-    
+    event FaucetUsed(address indexed user, uint256 amount);
+    event Burned(address indexed user, uint256 amount);
+
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -69,80 +72,56 @@ contract Shiny42Token is ERC20, Ownable {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
     error Shiny42Token__NeedsToBeMoreThanZero();
+    error Shiny42Token__FaucetCooldownNotFinished();
 
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    constructor() ERC20("Shiny42Token", "S42T") Ownable(msg.sender) {
-        s_totalShiny42TokenSupply = 0;
-        s_totalSepoliaSupply = 0;
-    }
+    constructor() ERC20("Shiny42Token", "S42T") Ownable(msg.sender) {}
 
     /*//////////////////////////////////////////////////////////////
-                            PUBLIC FUNCTIONS
+                           EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     /**
-     * @notice Swaps other tokens for Shiny42Tokens. A user can only swap for officially recognized tokens.
+     * @notice Developers can mint a small amount for testing
      */
-    function mintShiny42Tokens(address _user, uint256 _amount) public moreThanZero(_amount) onlyOwner() {
-        s_userBalance[_user] += _amount;
-        s_totalSepoliaSupply += _amount;
-        s_totalShiny42TokenSupply += _amount;
-        mint(_user, _amount);
+    function faucet() external whenNotPaused {
+        if (s_lastMintedAt[msg.sender] - block.timestamp <= FAUCET_COOLDOWN) {
+            revert Shiny42Token__FaucetCooldownNotFinished();
+        }
+        s_lastMintedAt[msg.sender] = block.timestamp;
+        _mint(msg.sender, FAUCET_AMOUNT);
+        emit FaucetUsed(msg.sender, FAUCET_AMOUNT);
     }
 
     /**
-     * @notice Swaps other tokens for Shiny42Token. A user can only swap for officially recognized tokens.
+     * @notice Allow users to burn their tokens
+     * @param amount The amount of tokens to burn
      */
-    function exchangeShiny42TokensforSepolia(address _user, uint256 _amount) public moreThanZero(_amount) onlyOwner() {
-        s_userBalance[_user] -= _amount;
-        s_totalSepoliaSupply -= _amount;
-        s_totalShiny42TokenSupply -= _amount;
-        burn(_user, _amount);
+    function burn(uint256 amount) external moreThanZero(amount) {
+        _burn(msg.sender, amount);
+        emit Burned(msg.sender, amount);
+    }
+
+    /**
+     * @notice Admin pause function
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Admin unpause function
+     */
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     /*//////////////////////////////////////////////////////////////
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    /**
-     * @notice Mints Shiny42Tokens to the user
-     */
-    function mint(address _account, uint256 _value) internal {
-        _mint(_account, _value);
-    }
-
-    /**
-     * @notice Burns Shiny42Tokens from the user
-     */
-    function burn(address _account, uint256 _value) internal {
-        _burn(_account, _value);
-    }
 
     /*//////////////////////////////////////////////////////////////
                              VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    /**
-     * @notice Returns the balance of a user
-     * @param _user The address of the user
-     * @return The balance of the user in Shiny42Token
-     */
-    function getUserBalance(address _user) public view returns (uint256) {
-        return s_userBalance[_user];
-    }
-
-    /**
-     * @notice Gets the total supply of Shiny42Token
-     * @return The total supply of Shiny42Token
-     */
-    function getTotalShiny42TokenSupply() public view returns (uint256) {
-        return s_totalShiny42TokenSupply;
-    }
-
-    /**
-     * @notice Gets the total supply of Sepolia tokens
-     * @return The total supply of Sepolia tokens
-     */
-    function getTotalSepoliaSupply() public view returns (uint256) {
-        return s_totalSepoliaSupply;
-    }
 }
